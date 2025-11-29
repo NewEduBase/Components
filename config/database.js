@@ -1,16 +1,11 @@
 import mongoose from 'mongoose'
 import { config } from './env.js'
 
-const connections = {
+// Connectionlarni xotirada saqlash uchun global obyekt
+let cachedConnections = {
 	project: null,
 	account: null,
 	group: null,
-}
-
-const connectionStates = {
-	project: 'disconnected',
-	account: 'disconnected',
-	group: 'disconnected',
 }
 
 const createConnection = (uri, name) => {
@@ -19,85 +14,55 @@ const createConnection = (uri, name) => {
 	}
 
 	const conn = mongoose.createConnection(uri, {
-		maxPoolSize: 10,
-		minPoolSize: 2,
-		serverSelectionTimeoutMS: 5000,
+		maxPoolSize: 1, // Serverless uchun 1 yetarli (resursni tejash)
+		minPoolSize: 0,
+		serverSelectionTimeoutMS: 5000, // 5 sekundda ulanmasa xato berish
 		socketTimeoutMS: 45000,
-		family: 4, // Use IPv4, skip IPv6
-		retryWrites: true,
-		w: 'majority',
+		family: 4,
+		bufferCommands: true, // Buyruqlarni buferlash (connection bo'lmaganda kutib turish uchun)
 	})
 
 	conn.on('connected', () => {
-		connectionStates[name.toLowerCase()] = 'connected'
 		console.log(`✅ ${name} bazasi ulandi`)
 	})
 
-	conn.on('disconnected', () => {
-		connectionStates[name.toLowerCase()] = 'disconnected'
-		console.log(`⚠️  ${name} bazasi ulanmadi`)
-	})
-
 	conn.on('error', err => {
-		connectionStates[name.toLowerCase()] = 'error'
 		console.error(`❌ ${name} bazasi xatosi:`, err.message)
-	})
-
-	conn.on('reconnected', () => {
-		connectionStates[name.toLowerCase()] = 'connected'
-		console.log(`🔄 ${name} bazasi qayta ulandi`)
 	})
 
 	return conn
 }
 
 export const getConnection = type => {
-	if (!connections[type]) {
-		try {
-			if (type === 'project') {
-				connections[type] = createConnection(config.MONGODB_URI, 'Projects')
-			} else if (type === 'account') {
-				connections[type] = createConnection(
-					config.MONGODB_URI_ROLES,
-					'Accounts'
-				)
-			} else if (type === 'group') {
-				connections[type] = createConnection(
-					config.MONGODB_URI_GROUPS,
-					'Groups'
-				)
-			}
-		} catch (error) {
-			console.error(
-				`❌ Connection yaratishda xatolik [${type}]:`,
-				error.message
-			)
-			throw error
-		}
+	let uri = config.MONGODB_URI
+	let name = 'Projects'
+
+	if (type === 'account') {
+		uri = config.MONGODB_URI_ROLES
+		name = 'Accounts'
+	} else if (type === 'group') {
+		uri = config.MONGODB_URI_GROUPS
+		name = 'Groups'
 	}
-	return connections[type]
-}
 
-export const ensureConnection = async type => {
-	const connection = getConnection(type)
+	// Agar ulanish mavjud bo'lsa va u faol bo'lsa (readyState === 1) yoki ulanayotgan bo'lsa (readyState === 2)
+	if (
+		cachedConnections[type] &&
+		[1, 2].includes(cachedConnections[type].readyState)
+	) {
+		return cachedConnections[type]
+	}
 
-	if (connection.readyState === 1) return connection
+	// Eski ulanish mavjud bo'lsa lekin uzilgan bo'lsa, uni yopishga harakat qilamiz
+	if (cachedConnections[type]) {
+		try {
+			cachedConnections[type].close().catch(() => {})
+		} catch (e) {}
+	}
 
-	return new Promise((resolve, reject) => {
-		const timeout = setTimeout(() => {
-			reject(new Error(`Connection timeout for ${type}`))
-		}, 10000)
-
-		connection.once('open', () => {
-			clearTimeout(timeout)
-			resolve(connection)
-		})
-
-		connection.once('error', err => {
-			clearTimeout(timeout)
-			reject(err)
-		})
-	})
+	// Yangi ulanish yaratish
+	cachedConnections[type] = createConnection(uri, name)
+	return cachedConnections[type]
 }
 
 export const getModel = (name, schema) => {
@@ -108,6 +73,7 @@ export const getModel = (name, schema) => {
 		type = 'group'
 	}
 
+	// Modelni har safar chaqirilganda 'getConnection' orqali jonli ulanishga bog'laymiz
 	const connection = getConnection(type)
 	return connection.model(name, schema)
 }
