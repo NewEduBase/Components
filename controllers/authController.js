@@ -1,21 +1,15 @@
-import { Account, Role } from '../models/Accounts.js'
+import { Account as Accounts, Role } from '../models/Accounts.js'
 import Project from '../models/Projects.js'
-import { ensureConnection } from '../config/database.js'
 import bcrypt from 'bcryptjs'
 
 const login = async (req, res) => {
 	try {
-		await ensureConnection('account')
-		await ensureConnection('project')
-
 		const { login, password } = req.body
 		const project = req.project
-
-		if (!login || !password) {
+		if (!login || !password)
 			return res.status(400).json({ error: 'Login va parol kiritilishi shart' })
-		}
 
-		const account = await Account.findOne({
+		const account = await Accounts.findOne({
 			$or: [{ phone: login }, { email: login }, { username: login }],
 		})
 			.populate({
@@ -28,31 +22,25 @@ const login = async (req, res) => {
 			})
 			.lean()
 
-		if (!account) {
+		if (!account)
 			return res.status(400).json({ error: 'Bunday foydalanuvchi mavjud emas' })
-		}
 
 		const isUserInProject = account.userBase.some(
 			base => base.project?._id?.toString() === project._id.toString()
 		)
-
-		if (!isUserInProject) {
+		if (!isUserInProject)
 			return res
 				.status(403)
 				.json({ error: 'Foydalanuvchi bu loyihaga ulanmagan' })
-		}
 
 		const isPasswordValid = await bcrypt.compare(password, account.password)
-		if (!isPasswordValid) {
+		if (!isPasswordValid)
 			return res.status(400).json({ error: "Parol noto'g'ri" })
-		}
 
 		const { password: _, ...safeAccount } = account
-		res.status(200).json({
-			success: true,
-			message: 'Xush kelibsiz!',
-			account: safeAccount,
-		})
+		res
+			.status(200)
+			.json({ success: true, message: 'Xush kelibsiz!', account: safeAccount })
 	} catch (error) {
 		console.error('Login Error:', error)
 		res
@@ -63,11 +51,8 @@ const login = async (req, res) => {
 
 const getMe = async (req, res) => {
 	try {
-		await ensureConnection('account')
-
 		const { userID } = req.params
-
-		const account = await Account.findOne({ userID })
+		const account = await Accounts.findOne({ userID })
 			.populate({
 				path: 'userBase.role',
 				model: Role,
@@ -78,9 +63,8 @@ const getMe = async (req, res) => {
 			})
 			.lean()
 
-		if (!account) {
+		if (!account)
 			return res.status(404).json({ error: 'Bunday foydalanuvchi mavjud emas' })
-		}
 
 		const { password: _, ...safeAccount } = account
 		res.status(200).json({ success: true, user: safeAccount })
@@ -95,12 +79,10 @@ const getMe = async (req, res) => {
 
 const updateDetails = async (req, res) => {
 	try {
-		await ensureConnection('account')
-
 		const { userID } = req.params
 		const { name, username, email, phone } = req.body
 
-		const account = await Account.findOne({ userID })
+		const account = await Accounts.findOne({ userID })
 		if (!account) {
 			return res.status(404).json({ error: 'Bunday foydalanuvchi mavjud emas' })
 		}
@@ -112,7 +94,7 @@ const updateDetails = async (req, res) => {
 
 		await account.save()
 
-		const updatedAccount = await Account.findOne({ userID })
+		const updatedAccount = await Accounts.findOne({ userID })
 			.populate({
 				path: 'userBase.role',
 				model: 'Role',
@@ -142,8 +124,6 @@ const updateDetails = async (req, res) => {
 
 const getRoles = async (req, res) => {
 	try {
-		await ensureConnection('account')
-
 		const { project } = req.query
 		let query = {}
 
@@ -166,38 +146,32 @@ const getRoles = async (req, res) => {
 		console.error('Xatolik: ', error)
 		return res.status(500).json({
 			success: false,
-			message: 'Roles ma`lumotlarini olishda xatolik',
+			message: 'Xatolik: Roles ma`lumotlarini olishda xatolik',
 		})
 	}
 }
 
 const assignRole = async (req, res) => {
 	try {
-		await ensureConnection('account')
-		await ensureConnection('project')
-
 		const { user, roleID, projectID } = req.body
 
 		if (!user || !roleID) {
 			return res.status(400).json({ error: 'User va Role kiritilishi shart' })
 		}
-
 		const [account, role, projectObj] = await Promise.all([
-			Account.findOne({ userID: user }),
+			Accounts.findOne({ userID: user }),
 			Role.findOne({ roleID }),
 			Project.findOne({ projectID }),
 		])
 
-		if (!account) {
+		if (!account)
 			return res.status(404).json({ error: 'Foydalanuvchi topilmadi' })
-		}
 		if (!role) return res.status(404).json({ error: 'Rol topilmadi' })
 		if (!projectObj) return res.status(404).json({ error: 'Loyiha topilmadi' })
 
 		const idx = account.userBase.findIndex(
 			b => b.project.toString() === projectObj._id.toString()
 		)
-
 		if (idx > -1) account.userBase[idx].role = role._id
 		else account.userBase.push({ project: projectObj._id, role: role._id })
 
@@ -211,9 +185,6 @@ const assignRole = async (req, res) => {
 
 const removeRole = async (req, res) => {
 	try {
-		await ensureConnection('account')
-		await ensureConnection('project')
-
 		const { user, projectID } = req.body
 
 		if (!user || !projectID) {
@@ -223,28 +194,24 @@ const removeRole = async (req, res) => {
 		}
 
 		const [account, projectObj] = await Promise.all([
-			Account.findOne({ userID: user }),
+			Accounts.findOne({ userID: user }),
 			Project.findOne({ projectID }),
 		])
 
-		if (!account) {
+		if (!account)
 			return res.status(404).json({ error: 'Foydalanuvchi topilmadi' })
-		}
 		if (!projectObj) return res.status(404).json({ error: 'Loyiha topilmadi' })
 
 		const idx = account.userBase.findIndex(
 			b => b.project.toString() === projectObj._id.toString()
 		)
-
 		if (idx > -1) {
 			account.userBase[idx].role = null
 			await account.save()
-			return res.status(200).json({
-				success: true,
-				message: 'Rol olib tashlandi',
-			})
+			return res
+				.status(200)
+				.json({ success: true, message: 'Rol olib tashlandi' })
 		}
-
 		res.status(404).json({ error: 'Foydalanuvchi bu loyihada topilmadi' })
 	} catch (error) {
 		console.error('Remove Role Error:', error)
@@ -254,9 +221,6 @@ const removeRole = async (req, res) => {
 
 const createRole = async (req, res) => {
 	try {
-		await ensureConnection('account')
-		await ensureConnection('project')
-
 		const { name, roleBase, description, project } = req.body
 
 		if (!name || !roleBase) {
@@ -289,10 +253,7 @@ const createRole = async (req, res) => {
 
 const updateRole = async (req, res) => {
 	try {
-		await ensureConnection('account')
-
 		const { roleID, name, description } = req.body
-
 		const role = await Role.findOne({ roleID })
 		if (!role) {
 			return res.status(404).json({ error: 'Rol topilmadi' })
@@ -311,10 +272,7 @@ const updateRole = async (req, res) => {
 
 const deleteRole = async (req, res) => {
 	try {
-		await ensureConnection('account')
-
 		const { roleID } = req.body
-
 		const role = await Role.findOne({ roleID })
 		if (!role) {
 			return res.status(404).json({ error: 'Rol topilmadi' })

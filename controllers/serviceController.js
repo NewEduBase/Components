@@ -1,18 +1,13 @@
 import { Account, Role } from '../models/Accounts.js'
-import { ensureConnection } from '../config/database.js'
 
 export const getProjectData = async (req, res) => {
 	try {
-		await ensureConnection('account')
-
 		const project = req.project
-
 		if (!project) {
 			return res
 				.status(404)
 				.json({ success: false, message: 'Loyiha topilmadi' })
 		}
-
 		const [roles, accounts] = await Promise.all([
 			Role.find({ projects: project._id }).lean(),
 			Account.find({ 'userBase.project': project._id })

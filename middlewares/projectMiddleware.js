@@ -1,5 +1,4 @@
 import Project from '../models/Projects.js'
-import { ensureConnection } from '../config/database.js'
 
 export const checkProject = async (req, res, next) => {
 	try {
@@ -12,9 +11,6 @@ export const checkProject = async (req, res, next) => {
 				error: 'Api kalit sozni kiriting',
 			})
 		}
-
-		// Ensure database connection is ready
-		await ensureConnection('project')
 
 		const project = await Project.findOne({ apiKey }).lean().exec()
 

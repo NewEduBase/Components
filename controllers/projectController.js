@@ -1,53 +1,42 @@
-import Project from '../models/Projects.js'
+import Projects from '../models/Projects.js'
 import { Account } from '../models/Accounts.js'
-import { ensureConnection } from '../config/database.js'
 
 const createProject = async (req, res) => {
 	try {
-		await ensureConnection('project')
 		const { name, description } = req.body
-
-		if (!name) {
+		if (!name)
 			return res.status(400).json({ error: 'Loyiha nomi kiritilishi shart' })
-		}
 
-		const existingProject = await Project.findOne({ name }).lean()
-		if (existingProject) {
+		const existingProject = await Projects.findOne({ name }).lean()
+		if (existingProject)
 			return res
 				.status(400)
 				.json({ error: 'Bu nomdagi loyiha allaqachon mavjud' })
-		}
 
-		const project = await Project.create({ name, description })
+		const project = await Projects.create({ name, description })
 		res
 			.status(201)
 			.json({ message: 'Loyiha muvaffaqiyatli yaratildi', project })
 	} catch (error) {
-		console.error('createProject error:', error)
 		res.status(500).json({ error: error.message })
 	}
 }
 
 const getProjects = async (req, res) => {
 	try {
-		await ensureConnection('project')
-		const projects = await Project.find().lean()
+		const projects = await Projects.find().lean()
 		res.status(200).json(projects)
 	} catch (error) {
-		console.error('getProjects error:', error)
 		res.status(500).json({ error: error.message })
 	}
 }
 
 const getProjectUsers = async (req, res) => {
 	try {
-		await ensureConnection('project')
-		await ensureConnection('account')
-
 		const { projectId } = req.params
 		const { filter } = req.query
 
-		const project = await Project.findOne({ projectID: projectId }).lean()
+		const project = await Projects.findOne({ projectID: projectId }).lean()
 		if (!project) return res.status(404).json({ error: 'Loyiha topilmadi' })
 
 		if (filter === 'unrolled') {
@@ -99,13 +88,10 @@ const getProjectUsers = async (req, res) => {
 
 const createProjectUser = async (req, res) => {
 	try {
-		await ensureConnection('project')
-		await ensureConnection('account')
-
 		const { projectId } = req.params
 		const { name, phone, email, username, password, is_active } = req.body
 
-		const project = await Project.findOne({ projectID: projectId }).lean()
+		const project = await Projects.findOne({ projectID: projectId }).lean()
 		if (!project) return res.status(404).json({ error: 'Loyiha topilmadi' })
 
 		let account = await Account.findOne({
@@ -116,11 +102,11 @@ const createProjectUser = async (req, res) => {
 			const isLinked = account.userBase.some(
 				b => b.project.toString() === project._id.toString()
 			)
-			if (isLinked) {
+			if (isLinked)
 				return res
 					.status(400)
 					.json({ error: 'Foydalanuvchi allaqachon loyihaga biriktirilgan' })
-			}
+
 			account.userBase.push({ project: project._id, role: null })
 			await account.save()
 		} else {
@@ -145,15 +131,11 @@ const createProjectUser = async (req, res) => {
 
 const updateProjectUser = async (req, res) => {
 	try {
-		await ensureConnection('account')
-
 		const { userID, name, phone, email, username, password, is_active } =
 			req.body
-
 		const account = await Account.findOne({ userID })
-		if (!account) {
+		if (!account)
 			return res.status(404).json({ error: 'Foydalanuvchi topilmadi' })
-		}
 
 		if (name) account.name = name
 		if (phone) account.phone = phone
@@ -172,29 +154,24 @@ const updateProjectUser = async (req, res) => {
 
 const deleteProjectUser = async (req, res) => {
 	try {
-		await ensureConnection('project')
-		await ensureConnection('account')
-
 		const { projectId } = req.params
 		const { userID } = req.body
 
-		const project = await Project.findOne({ projectID: projectId }).lean()
+		const project = await Projects.findOne({ projectID: projectId }).lean()
 		if (!project) return res.status(404).json({ error: 'Loyiha topilmadi' })
 
 		const account = await Account.findOne({ userID })
-		if (!account) {
+		if (!account)
 			return res.status(404).json({ error: 'Foydalanuvchi topilmadi' })
-		}
 
 		account.userBase = account.userBase.filter(
 			b => b.project.toString() !== project._id.toString()
 		)
 		await account.save()
 
-		res.status(200).json({
-			success: true,
-			message: "Foydalanuvchi loyihadan o'chirildi",
-		})
+		res
+			.status(200)
+			.json({ success: true, message: "Foydalanuvchi loyihadan o'chirildi" })
 	} catch (error) {
 		console.error('deleteProjectUser error:', error)
 		res.status(500).json({ error: error.message })
@@ -203,21 +180,16 @@ const deleteProjectUser = async (req, res) => {
 
 const getUserDetails = async (req, res) => {
 	try {
-		await ensureConnection('project')
-		await ensureConnection('account')
-
 		const { target_user_id } = req.body
-
 		const account = await Account.findOne({ userID: target_user_id })
 			.populate({ path: 'userBase.role', select: 'name roleBase -_id' })
 			.lean()
 
-		if (!account) {
+		if (!account)
 			return res.status(404).json({ error: 'Foydalanuvchi topilmadi' })
-		}
 
 		const projectIds = account.userBase.map(b => b.project).filter(Boolean)
-		const projectsList = await Project.find({
+		const projectsList = await Projects.find({
 			_id: { $in: projectIds },
 		}).lean()
 
