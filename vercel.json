@@ -1,15 +1,30 @@
 {
-	"version": 2,
+	"buildCommand": "npm install",
+	"devCommand": "npm run dev",
+	"installCommand": "npm install",
+	"env": {
+		"MONGODB_URI": "@mongodb_uri",
+		"MONGODB_URI_ROLES": "@mongodb_uri_roles",
+		"MONGODB_URI_GROUPS": "@mongodb_uri_groups",
+		"API_SECRET": "@api_secret",
+		"NODE_ENV": "production"
+	},
 	"builds": [
 		{
-			"src": "./index.js",
-			"use": "@vercel/node"
+			"src": "index.js",
+			"use": "@vercel/node@3.1.0"
 		}
 	],
 	"routes": [
 		{
 			"src": "/(.*)",
-			"dest": "/"
+			"dest": "index.js"
 		}
-	]
+	],
+	"functions": {
+		"index.js": {
+			"memory": 1024,
+			"maxDuration": 60
+		}
+	}
 }

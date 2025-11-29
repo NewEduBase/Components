@@ -2,7 +2,7 @@ import dotenv from 'dotenv'
 
 dotenv.config()
 
-const required = ['MONGODB_URI']
+const required = ['MONGODB_URI', 'MONGODB_URI_ROLES', 'MONGODB_URI_GROUPS']
 const missingVars = required.filter(key => !process.env[key])
 
 if (missingVars.length) {
@@ -10,11 +10,13 @@ if (missingVars.length) {
 }
 
 export const config = {
-	PORT: Number(process.env.PORT),
+	PORT: Number(process.env.PORT) || 1234,
 	API_SECRET: process.env.API_SECRET,
 	MONGODB_URI: process.env.MONGODB_URI,
 	MONGODB_URI_ROLES: process.env.MONGODB_URI_ROLES,
+	MONGODB_URI_GROUPS: process.env.MONGODB_URI_GROUPS,
 	isDev: process.env.NODE_ENV !== 'production',
+	NODE_ENV: process.env.NODE_ENV || 'development',
 }
 
 export default config

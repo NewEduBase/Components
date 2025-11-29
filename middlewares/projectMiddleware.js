@@ -1,4 +1,5 @@
 import Project from '../models/Projects.js'
+import { ensureConnection } from '../config/database.js'
 
 export const checkProject = async (req, res, next) => {
 	try {
@@ -11,6 +12,8 @@ export const checkProject = async (req, res, next) => {
 				error: 'Api kalit sozni kiriting',
 			})
 		}
+
+		await ensureConnection('project')
 
 		const project = await Project.findOne({ apiKey }).lean().exec()
 
@@ -32,6 +35,14 @@ export const checkProject = async (req, res, next) => {
 		next()
 	} catch (err) {
 		console.error('❌ Project middleware xatosi:', err.message)
+
+		if (err.message.includes('timeout')) {
+			return res.status(503).json({
+				success: false,
+				error: 'Database ulanish vaqti tugadi',
+			})
+		}
+
 		res.status(500).json({
 			success: false,
 			error: 'Proyekt tekshirilmadi',
