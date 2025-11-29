@@ -11,6 +11,7 @@ router.put(
 	checkProject,
 	authController.updateDetails
 )
+
 router
 	.route('/roles')
 	.get(authController.getRoles)

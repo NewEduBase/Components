@@ -1,14 +1,16 @@
 const codeCache = new Set()
 
-export const generateUniqueCode = (prefix, length = 7) => {
+export const generateUniqueCode = (length = 7) => {
 	const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
 	let code
+
 	do {
-		code = `${prefix}-${Array.from(
+		code = Array.from(
 			{ length },
 			() => chars[Math.floor(Math.random() * chars.length)]
-		).join('')}`
+		).join('')
 	} while (codeCache.has(code))
+
 	codeCache.add(code)
 	return code
 }

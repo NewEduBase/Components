@@ -42,7 +42,6 @@ const AccountSchema = new mongoose.Schema(
 		username: { type: String, unique: true },
 		password: { type: String, required: true },
 		is_active: { type: Boolean, default: true },
-
 		userBase: [
 			{
 				role: { type: mongoose.Schema.Types.ObjectId, ref: 'Role' },
@@ -68,7 +67,6 @@ AccountSchema.pre('save', async function () {
 	if (this.isModified('password')) {
 		this.password = await bcrypt.hash(this.password, 12)
 	}
-
 	if (typeof this.email === 'string' && this.email.trim() === '') {
 		this.email = undefined
 	}

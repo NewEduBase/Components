@@ -1,6 +1,6 @@
 export const errorHandler = (err, req, res, next) => {
 	const status = err.response?.status || err.statusCode || 500
-	const message = err.response?.data?.error || err.message || '❌ Server xatosi'
+	const message = err.response?.data?.error || err.message || 'Server xatosi'
 
 	if (process.env.NODE_ENV !== 'production') {
 		console.error('Error:', { status, message, error: err })
@@ -9,7 +9,7 @@ export const errorHandler = (err, req, res, next) => {
 	if (err.request && !err.response) {
 		return res.status(503).json({
 			success: false,
-			error: "🌐 Xizmetga bog'lanib bo'lmadi. Tarmoq xatosi.",
+			error: "Xizmatga bog'lanib bo'lmadi. Tarmoq xatosi.",
 		})
 	}
 

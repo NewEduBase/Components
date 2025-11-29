@@ -35,7 +35,6 @@ ProjectSchema.pre('save', async function () {
 			async () => `EP-${generateUniqueCode(7)}`
 		)
 	}
-
 	if (!this.apiKey) {
 		this.apiKey = await generateUniqueField(
 			this.constructor,
@@ -49,4 +48,5 @@ ProjectSchema.pre('save', async function () {
 	}
 })
 
-export default getModel('Project', ProjectSchema)
+const Project = getModel('Project', ProjectSchema)
+export default Project

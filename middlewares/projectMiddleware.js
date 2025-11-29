@@ -13,6 +13,7 @@ export const checkProject = async (req, res, next) => {
 			})
 		}
 
+		// Ensure database connection is ready
 		await ensureConnection('project')
 
 		const project = await Project.findOne({ apiKey }).lean().exec()
@@ -36,6 +37,7 @@ export const checkProject = async (req, res, next) => {
 	} catch (err) {
 		console.error('❌ Project middleware xatosi:', err.message)
 
+		// Return appropriate error based on error type
 		if (err.message.includes('timeout')) {
 			return res.status(503).json({
 				success: false,
