@@ -3,10 +3,10 @@
 	"devCommand": "npm run dev",
 	"installCommand": "npm install",
 	"env": {
-		"MONGODB_URI": "@mongodb_uri",
-		"MONGODB_URI_ROLES": "@mongodb_uri_roles",
-		"MONGODB_URI_GROUPS": "@mongodb_uri_groups",
-		"API_SECRET": "@api_secret",
+		"MONGODB_URI": "mongodb+srv://mrsadriddin:16102006s@edubase-projects.gfk2e4c.mongodb.net/edubase-projects?appName=edubase-projects",
+		"MONGODB_URI_ROLES": "mongodb+srv://mrsadriddin:16102006s@edubase-accounts.ce2lpir.mongodb.net/edubase-accounts?appName=edubase-accounts",
+		"MONGODB_URI_GROUPS": "mongodb+srv://mrsadriddin:16102006s@edubase-accounts.ce2lpir.mongodb.net/edubase-accounts?appName=edubase-accounts",
+		"API_SECRET": "your_super_secret_key_here",
 		"NODE_ENV": "production"
 	},
 	"functions": {
